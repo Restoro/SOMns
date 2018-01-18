@@ -388,7 +388,7 @@ public final class ObjectSystem {
     // We check whether there is activity on any of the pools.
     // And, we exit when either the main promise is resolved, or an exit was requested.
     int emptyFJPool = 0;
-    while (emptyFJPool < 120) {
+    while (emptyFJPool < 120000) {
       if (promise.isCompleted()) {
         if (promise.isErroredUnsync()) {
           return Launcher.EXIT_WITH_ERROR;
