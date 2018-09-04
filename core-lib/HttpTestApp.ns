@@ -1,0 +1,28 @@
+class Hello usingPlatform: platform = Value (
+| private http = platform http.
+  private actors = platform actors.
+|)(
+  public main: args = (
+    | srv pp |
+    pp:: actors createPromisePair.
+    'Hello World!' println.
+
+    srv:: http Server create: 'localhost' port: 8881.
+    srv <-: start.
+    srv <-: route: '/' with: #GET to: [:ex |
+      'get request' println.
+      ex responseStatus: 200.
+      ex responseContentType: 'text/html'.
+      ex sendResponse: '<html>HELLO WORLD!</html>\n\n'.
+      'send response' println. ].
+    srv <-: route: '/index.html' with: #GET to: [:ex |
+      'get request' println.
+      ex responseStatus: 200.
+      ex responseContentType: 'text/html'.
+      ex sendResponse: '<html>HELLO WORLD!</html>\n\n'.
+      'send response' println. ].
+
+    'promise returned' println.
+    ^ pp promise
+  )
+)

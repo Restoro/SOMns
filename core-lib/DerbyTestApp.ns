@@ -1,0 +1,26 @@
+class Hello usingPlatform: platform = Value (
+| private derby = platform derby. |
+)(
+  public main: args = (
+    | a |
+    'Hello World!' println.
+
+
+    derby start.
+
+    a:: derby DerbyActor new: 'my-test.db' ifFail: [:e | 'failed creating db' println. e println. ].
+    a execute: 'CREATE TABLE employees(id integer, name varchar(100))'
+     callback: [:v | 'created table' println. v println. ]
+       ifFail: [:e :e2 | 'failed creating table' println.
+                          e println.
+                          e2 println. ].
+
+    derby stop.
+
+    args from: 2 to: args size do: [ :arg | arg print. ' ' print ].
+    '' println.
+
+    'END' println.
+    ^ 0
+  )
+)
