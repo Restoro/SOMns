@@ -20,7 +20,7 @@ THE SOFTWARE.
 *)
 
 class Http usingVmMirror: vmMirror usingPlatform: platform = Value (
-  | private vmMirror = vmMirror. 
+  | private vmMirror = vmMirror.
     private files = platform files.
     private Dictionary = platform collections Dictionary.
     private actors = platform actors.
@@ -30,7 +30,7 @@ class Http usingVmMirror: vmMirror usingPlatform: platform = Value (
 ) (
 
   public class Server = ()():(
-    public create: ip <String> port: port <int> = (
+    public create: ip <String> port: port <Integer> = (
       | server |
       server:: (actors createActorFromValue: ServerActor) <-: new: ip port: port.
       ^ server.
@@ -45,7 +45,7 @@ class Http usingVmMirror: vmMirror usingPlatform: platform = Value (
   )(
     (*use exchange attributes to store parsed stuff*)
     (*application/json, text/html and 'application/x-www-form-urlencoded'*)
-    public route: path <String> with: method <SSymbol> to: aBlock <Block[Request, Response]> = (
+    public route: path <String> with: method <SSymbol> to: aBlock <Block[Exchange]> = (
       ^ vmMirror httpRegisterHandle: server method: method path: path handler: aBlock.
     )
 
@@ -103,7 +103,7 @@ class Http usingVmMirror: vmMirror usingPlatform: platform = Value (
       result:: Dictionary new.
 
       pairs:: (body split: '&').
-      
+
       pairs do: [ :pair |
         comp:: (pair split: '=').
         result at: (comp at: 1) put: (comp at: 2).
@@ -130,12 +130,12 @@ class Http usingVmMirror: vmMirror usingPlatform: platform = Value (
     )
 
     (*set status header, and send string representation as body*)
-    public sendResponseStatus: status <int> = (
+    public sendResponseStatus: status <Integer> = (
       ^ (responseStatus: status) sendResponse: ('' + status).
     )
 
     (*set response status*)
-    public responseStatus: status <int> = (
+    public responseStatus: status <Integer> = (
       vmMirror httpExchange: self setResponseStatus: status.
       ^ self.
     )
@@ -167,7 +167,7 @@ class Http usingVmMirror: vmMirror usingPlatform: platform = Value (
     public responseContentType: type <String> = (
       responseHeader: 'Content-Type' value: type.
     )
-    
+
   ) : (
     private new = ( self error: 'Should not happen' )
   )
