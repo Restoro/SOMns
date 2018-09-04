@@ -28,7 +28,6 @@ import som.interpreter.actors.Actor;
 import som.interpreter.actors.Actor.ActorProcessingThread;
 import som.interpreter.actors.EventualMessage;
 import som.interpreter.actors.EventualMessage.DirectMessage;
-import som.interpreter.actors.EventualMessage.ExternalDirectMessage;
 import som.interpreter.actors.EventualSendNode;
 import som.interpreter.actors.ReceivedMessage;
 import som.interpreter.actors.SFarReference;
@@ -54,9 +53,10 @@ import som.vmobjects.SDerbyConnection;
 import som.vmobjects.SDerbyConnection.SDerbyPreparedStatement;
 import som.vmobjects.SInvokable;
 import som.vmobjects.SSymbol;
-import tools.concurrency.ActorExecutionTrace;
-import tools.concurrency.ActorExecutionTrace.TwoDArrayWrapper;
 import tools.concurrency.TracingActors.TracingActor;
+import tools.replay.TwoDArrayWrapper;
+import tools.replay.actors.ActorExecutionTrace;
+import tools.replay.actors.ExternalEventualMessage.ExternalDirectMessage;
 
 
 public final class DerbyPrims {
@@ -332,16 +332,16 @@ public final class DerbyPrims {
   }
 
   @TruffleBoundary
-  protected static final int getUpdateCount(final Statement s) throws SQLException {
+  protected static int getUpdateCount(final Statement s) throws SQLException {
     return s.getUpdateCount();
   }
 
   @TruffleBoundary
-  protected static final String jarrToString(final JsonArray jarr) {
+  protected static String jarrToString(final JsonArray jarr) {
     return jarr.toString();
   }
 
-  protected static final void sendExternalMessageRS(final Statement statement,
+  protected static void sendExternalMessageRS(final Statement statement,
       final TracingActor actor, final TracingActor targetActor, final SBlock callback,
       final RootCallTarget rct, final ForkJoinPool pool,
       final short method)
@@ -361,7 +361,7 @@ public final class DerbyPrims {
     targetActor.send(msg, pool);
   }
 
-  protected static final void sendExternalMessageUC(final Statement statement,
+  protected static void sendExternalMessageUC(final Statement statement,
       final TracingActor actor, final TracingActor targetActor, final SBlock callback,
       final RootCallTarget rct, final ForkJoinPool pool,
       final short method)
