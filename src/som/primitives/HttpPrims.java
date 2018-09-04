@@ -32,8 +32,8 @@ import som.vmobjects.SClass;
 import som.vmobjects.SHttpServer;
 import som.vmobjects.SHttpServer.SHttpExchange;
 import som.vmobjects.SSymbol;
-import tools.concurrency.ActorExecutionTrace;
-import tools.concurrency.nodes.TraceActorContextNode;
+import tools.replay.actors.ActorExecutionTrace;
+import tools.replay.nodes.TraceActorContextNode;
 
 
 public final class HttpPrims {
