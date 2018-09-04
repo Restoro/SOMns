@@ -25,7 +25,9 @@ public abstract class BlockDispatchNode extends Node {
 
   protected static final SInvokable getMethod(final Object[] arguments) {
     SInvokable method = ((SBlock) arguments[0]).getMethod();
-    assert method.getNumberOfArguments() == arguments.length;
+    assert method.getNumberOfArguments() == arguments.length : "Expected block with "
+        + arguments.length + " arguments. But got a block with "
+        + method.getNumberOfArguments() + ". Block: " + method;
     return method;
   }
 
