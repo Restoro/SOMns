@@ -29,19 +29,19 @@ import som.interpreter.actors.Actor;
 import som.interpreter.actors.Actor.ActorProcessingThread;
 import som.interpreter.actors.EventualMessage;
 import som.interpreter.actors.EventualMessage.DirectMessage;
-import som.interpreter.actors.EventualMessage.ExternalDirectMessage;
 import som.interpreter.actors.ReceivedMessage;
 import som.interpreter.actors.SFarReference;
 import som.interpreter.nodes.MessageSendNode;
 import som.interpreter.nodes.MessageSendNode.AbstractMessageSendNode;
 import som.vm.Symbols;
 import som.vm.VmSettings;
-import tools.concurrency.ActorExecutionTrace.StringWrapper;
-import tools.concurrency.SExternalDataSource;
 import tools.concurrency.TracingActors.TracingActor;
+import tools.replay.ExternalDataSource;
+import tools.replay.StringWrapper;
+import tools.replay.actors.ExternalEventualMessage.ExternalDirectMessage;
 
 
-public class SHttpServer extends SObjectWithClass implements SExternalDataSource {
+public class SHttpServer extends SObjectWithClass implements ExternalDataSource {
   @CompilationFinal public static SClass httpServerClass;
   @CompilationFinal public static SClass httpExchangeClass;
 
