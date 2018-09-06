@@ -4,10 +4,13 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ForkJoinPool;
@@ -19,8 +22,10 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.source.SourceSection;
 import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpPrincipal;
 import com.sun.net.httpserver.HttpServer;
 
 import som.compiler.AccessModifier;
@@ -35,6 +40,8 @@ import som.interpreter.nodes.MessageSendNode;
 import som.interpreter.nodes.MessageSendNode.AbstractMessageSendNode;
 import som.vm.Symbols;
 import som.vm.VmSettings;
+import tools.concurrency.TraceParser;
+import tools.concurrency.TracingActors.ReplayActor;
 import tools.concurrency.TracingActors.TracingActor;
 import tools.replay.ExternalDataSource;
 import tools.replay.StringWrapper;
@@ -78,6 +85,7 @@ public class SHttpServer extends SObjectWithClass implements ExternalDataSource 
         }
       });
     } else {
+      ((ReplayActor) serverActor).setDataSource(this);
       this.server = null;
     }
   }
@@ -395,9 +403,13 @@ public class SHttpServer extends SObjectWithClass implements ExternalDataSource 
     public SHttpExchange(final HttpExchange exchange) {
       super(httpExchangeClass, httpExchangeClass.getInstanceFactory());
       this.exchange = exchange;
-      this.requestBody = new BufferedReader(
-          new InputStreamReader(exchange.getRequestBody())).lines().collect(
-              Collectors.joining("\n"));
+      if (!VmSettings.REPLAY) {
+        this.requestBody = new BufferedReader(
+            new InputStreamReader(exchange.getRequestBody())).lines().collect(
+                Collectors.joining("\n"));
+      } else {
+        this.requestBody = null;
+      }
       this.attributes = new FinalHashMap<>();
     }
 
@@ -458,9 +470,113 @@ public class SHttpServer extends SObjectWithClass implements ExternalDataSource 
     }
   }
 
+  private class MyHttpExchange extends HttpExchange {
+    private String URI;
+    private String Method;
+
+    public MyHttpExchange(final String uRI, final String method) {
+      super();
+      URI = uRI;
+      Method = method;
+    }
+
+    @Override
+    public void close() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getAttribute(final String arg0) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public HttpContext getHttpContext() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public InetSocketAddress getLocalAddress() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public HttpPrincipal getPrincipal() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String getProtocol() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public InetSocketAddress getRemoteAddress() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public InputStream getRequestBody() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Headers getRequestHeaders() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String getRequestMethod() {
+      return Method;
+    }
+
+    @Override
+    public URI getRequestURI() {
+      try {
+        return new URI(this.URI);
+      } catch (URISyntaxException e) {
+        return null;
+      }
+    }
+
+    @Override
+    public OutputStream getResponseBody() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int getResponseCode() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Headers getResponseHeaders() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void sendResponseHeaders(final int arg0, final long arg1) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setAttribute(final String arg0, final Object arg1) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setStreams(final InputStream arg0, final OutputStream arg1) {
+      throw new UnsupportedOperationException();
+    }
+
+  }
+
   @Override
   public void requestExternalMessage(final short method, final int dataId) {
     // TODO Auto-generated method stub
-
+    ByteBuffer bb =
+        TraceParser.getExternalData(((ReplayActor) serverActor).getActorId(), dataId);
+    String[] sa = new String(bb.array()).split("ä");
+    root.handle(sa[0], new MyHttpExchange(sa[0], sa[1]));
   }
 }

@@ -1,5 +1,7 @@
 package som.primitives;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -9,6 +11,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.BiConsumer;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -53,19 +56,23 @@ import som.vmobjects.SDerbyConnection;
 import som.vmobjects.SDerbyConnection.SDerbyPreparedStatement;
 import som.vmobjects.SInvokable;
 import som.vmobjects.SSymbol;
+import tools.concurrency.TraceParser;
+import tools.concurrency.TracingActors.ReplayActor;
 import tools.concurrency.TracingActors.TracingActor;
+import tools.replay.StringWrapper;
 import tools.replay.TwoDArrayWrapper;
 import tools.replay.actors.ActorExecutionTrace;
 import tools.replay.actors.ExternalEventualMessage.ExternalDirectMessage;
 
 
 public final class DerbyPrims {
-  private static final String  DRIVER              = "org.apache.derby.jdbc.EmbeddedDriver";
-  private static final short   METHOD_EXEC_PREP_UC = 0;
-  private static final short   METHOD_EXEC_PREP_RS = 1;
-  private static final short   METHOD_EXEC_UC      = 2;
-  private static final short   METHOD_EXEC_RS      = 3;
-  private static final SSymbol SELECTOR            = Symbols.symbolFor("value:");
+  private static final String  DRIVER               = "org.apache.derby.jdbc.EmbeddedDriver";
+  private static final short   METHOD_EXEC_PREP_UC  = 0;
+  private static final short   METHOD_EXEC_PREP_RS  = 1;
+  private static final short   METHOD_EXEC_UC       = 2;
+  private static final short   METHOD_EXEC_RS       = 3;
+  private static final short   METHOD_SQL_EXCEPTION = 4;
+  private static final SSymbol SELECTOR             = Symbols.symbolFor("value:");
 
   @GenerateNodeFactory
   @ImportStatic(DerbyPrims.class)
@@ -349,9 +356,7 @@ public final class DerbyPrims {
     int dataId = actor.getDataId();
     SImmutableArray arg = processResults(statement);
     TwoDArrayWrapper taw = new TwoDArrayWrapper(arg, actor.getActorId(), dataId);
-    // String s = jarrToString(jarr);
 
-    // StringWrapper sw = new StringWrapper(s, actor.getActorId(), dataId);
     ((ActorProcessingThread) Thread.currentThread()).addExternalData(taw);
 
     ExternalDirectMessage msg = new ExternalDirectMessage(targetActor, SELECTOR,
@@ -385,6 +390,53 @@ public final class DerbyPrims {
         new Object[] {callback, (long) uc},
         actor, null, rct,
         false, false, method, dataId);
+    targetActor.send(msg, pool);
+  }
+
+  protected static void sendSQLExceptionMessage(
+      final Actor actor, final Actor targetActor, final SBlock callback,
+      final RootCallTarget rct, final ForkJoinPool pool, final SQLException e) {
+
+    if (VmSettings.ACTOR_TRACING) {
+      int dataId = ((TracingActor) actor).getDataId();
+
+      StringWrapper sw =
+          new StringWrapper("SQLException" + e.getErrorCode() + "ä" + e.getMessage(),
+              ((TracingActor) actor).getActorId(), dataId);
+      ((ActorProcessingThread) Thread.currentThread()).addExternalData(sw);
+
+      ExternalDirectMessage msg = new ExternalDirectMessage(targetActor, SELECTOR,
+          new Object[] {callback, Symbols.symbolFor("SQLException" + e.getErrorCode()),
+              e.getMessage()},
+          actor, null, rct,
+          false, false, METHOD_SQL_EXCEPTION, dataId);
+      targetActor.send(msg, pool);
+    } else {
+      sendDirectMessage(actor, targetActor, callback, rct, pool,
+          Symbols.symbolFor("SQLException" + e.getErrorCode()),
+          e.getMessage());
+    }
+  }
+
+  protected static void sendDirectMessage(
+      final Actor actor, final Actor targetActor, final SBlock callback,
+      final RootCallTarget rct, final ForkJoinPool pool, final Object arg) {
+
+    DirectMessage msg = new DirectMessage(targetActor, SELECTOR,
+        new Object[] {callback, arg},
+        actor, null, rct,
+        false, false);
+    targetActor.send(msg, pool);
+  }
+
+  protected static void sendDirectMessage(
+      final Actor actor, final Actor targetActor, final SBlock callback,
+      final RootCallTarget rct, final ForkJoinPool pool, final Object arg, final Object arg2) {
+
+    DirectMessage msg = new DirectMessage(targetActor, SELECTOR,
+        new Object[] {callback, arg, arg2},
+        actor, null, rct,
+        false, false);
     targetActor.send(msg, pool);
   }
 
@@ -446,17 +498,18 @@ public final class DerbyPrims {
         final SBlock callback,
         final SBlock fail,
         final Actor targetActor) {
+
+      SInvokable s =
+          (SInvokable) Classes.blockClass.lookupMessage(SELECTOR, AccessModifier.PUBLIC);
+
+      RootCallTarget rct = createOnReceiveCallTarget(SELECTOR,
+          s.getSourceSection(), statement.getSomLangauge());
+
       try {
         PreparedStatement prep = statement.getStatement();
         boolean hasResultSet =
             executeStatement(prep, parameters,
                 statement.getNumParameters());
-
-        SInvokable s =
-            (SInvokable) Classes.blockClass.lookupMessage(SELECTOR, AccessModifier.PUBLIC);
-
-        RootCallTarget rct = createOnReceiveCallTarget(SELECTOR,
-            s.getSourceSection(), statement.getSomLangauge());
 
         if (VmSettings.ACTOR_TRACING) {
           if (hasResultSet) {
@@ -470,24 +523,19 @@ public final class DerbyPrims {
           }
         } else {
           if (hasResultSet) {
-            SImmutableArray arg = processResults(prep);
-            EventualMessage msg = new DirectMessage(targetActor, SELECTOR,
-                new Object[] {callback, arg},
-                statement.getDerbyActor(), null, rct,
-                false, false);
-            targetActor.send(msg, statement.getActorPool());
+            sendDirectMessage(statement.getDerbyActor(),
+                targetActor, callback, rct,
+                statement.getActorPool(), processResults(prep));
           } else {
-            long arg = getUpdateCount(prep);
-            EventualMessage msg = new DirectMessage(targetActor, SELECTOR,
-                new Object[] {callback, arg},
-                statement.getDerbyActor(), null, rct,
-                false, false);
-            targetActor.send(msg, statement.getActorPool());
+            sendDirectMessage(statement.getDerbyActor(),
+                targetActor, callback, rct,
+                statement.getActorPool(), getUpdateCount(prep));
           }
         }
       } catch (SQLException e) {
-        dispatchHandler.executeDispatch(new Object[] {fail,
-            Symbols.symbolFor("SQLException" + e.getErrorCode()), e.getMessage()});
+        sendSQLExceptionMessage(statement.getDerbyActor(),
+            targetActor, callback, rct,
+            statement.getActorPool(), e);
       }
       return statement;
     }
@@ -522,16 +570,15 @@ public final class DerbyPrims {
         final SBlock callback,
         final SBlock fail,
         final Actor targetActor) {
+
+      SInvokable s =
+          (SInvokable) Classes.blockClass.lookupMessage(SELECTOR, AccessModifier.PUBLIC);
+      RootCallTarget rct = createOnReceiveCallTarget(SELECTOR, s.getSourceSection(),
+          connection.getLanguage());
+
       try {
         Statement statement = connection.getConnection().createStatement();
         boolean hasResultSet = statement.execute(query);
-
-        SInvokable s =
-            (SInvokable) Classes.blockClass.lookupMessage(SELECTOR, AccessModifier.PUBLIC);
-        RootCallTarget rct = createOnReceiveCallTarget(SELECTOR, s.getSourceSection(),
-            connection.getLanguage());
-
-        EventualMessage msg;
 
         if (VmSettings.ACTOR_TRACING) {
           if (hasResultSet) {
@@ -545,27 +592,60 @@ public final class DerbyPrims {
           }
         } else {
           if (hasResultSet) {
-            SImmutableArray arg = processResults(statement);
-            msg = new DirectMessage(targetActor, SELECTOR,
-                new Object[] {callback, arg},
-                connection.getDerbyActor(), null, rct,
-                false, false);
-            targetActor.send(msg, connection.getActorPool());
+            sendDirectMessage(connection.getDerbyActor(),
+                targetActor, callback, rct,
+                connection.getActorPool(), processResults(statement));
           } else {
-            long arg = getUpdateCount(statement);
-            msg = new DirectMessage(targetActor, SELECTOR,
-                new Object[] {callback, arg},
-                connection.getDerbyActor(), null, rct,
-                false, false);
-            targetActor.send(msg, connection.getActorPool());
+            sendDirectMessage(connection.getDerbyActor(),
+                targetActor, callback, rct,
+                connection.getActorPool(), getUpdateCount(statement));
           }
         }
       } catch (SQLException e) {
-        dispatchHandler.executeDispatch(new Object[] {fail,
-            Symbols.symbolFor("SQLException" + e.getErrorCode()), e.getMessage()});
+        sendSQLExceptionMessage(connection.getDerbyActor(),
+            targetActor, callback, rct,
+            connection.getActorPool(), e);
       }
       return connection;
     }
   }
 
+  public class DerbyDataSource implements BiConsumer<Short, Integer> {
+    SDerbyConnection con;
+
+    public DerbyDataSource(final SDerbyConnection con) {
+      this.con = con;
+    }
+
+    @Override
+    public void accept(final Short method, final Integer dataId) {
+      assert VmSettings.REPLAY;
+      switch (method) {
+        case METHOD_EXEC_PREP_RS:
+        case METHOD_EXEC_RS:
+
+          // Array
+          break;
+        case METHOD_EXEC_PREP_UC:
+        case METHOD_EXEC_UC:
+          // Integer
+          break;
+        case METHOD_SQL_EXCEPTION:
+          ByteBuffer bb =
+              TraceParser.getExternalData(((ReplayActor) con.getDerbyActor()).getActorId(),
+                  dataId);
+          String s[] = new String(bb.array(), StandardCharsets.UTF_8).split("ä");
+          assert s.length == 2;
+          SSymbol sym = Symbols.symbolFor(s[0]);
+          String message = s[1];
+
+          sendDirectMessage(con.getDerbyActor(),
+              EventualMessage.getActorCurrentMessageIsExecutionOn(), callback, rct,
+              con.getActorPool(), sym, message);
+          break;
+        default:
+          throw new UnsupportedOperationException("Undefined Event Method");
+      }
+    }
+  }
 }
