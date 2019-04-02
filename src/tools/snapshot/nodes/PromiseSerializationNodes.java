@@ -257,19 +257,18 @@ public abstract class PromiseSerializationNodes {
         sb.installFixup(new PromiseValueFixup(p));
       }
 
-      int whenResolvedCnt = sb.getShort();
+      int whenResolvedCnt = Short.toUnsignedInt(sb.getShort());
       for (int i = 0; i < whenResolvedCnt; i++) {
         PromiseMessage pm = (PromiseMessage) sb.getReference();
         p.registerWhenResolvedUnsynced(pm);
       }
-
-      int onErrorCnt = sb.getShort();
+      int onErrorCnt = Short.toUnsignedInt(sb.getShort());
       for (int i = 0; i < onErrorCnt; i++) {
         PromiseMessage pm = (PromiseMessage) sb.getReference();
         p.registerOnErrorUnsynced(pm);
       }
 
-      int chainedPromCnt = sb.getShort();
+      int chainedPromCnt = Short.toUnsignedInt(sb.getShort());
       for (int i = 0; i < chainedPromCnt; i++) {
         Object remoteObj = sb.getReference();
         if (DeserializationBuffer.needsFixup(remoteObj)) {
