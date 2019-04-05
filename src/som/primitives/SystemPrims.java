@@ -2,8 +2,10 @@ package som.primitives;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import com.oracle.truffle.api.CompilerDirectives;
@@ -359,6 +361,41 @@ public final class SystemPrims {
       }
 
       return Nil.nilObject;
+    }
+  }
+
+  @GenerateNodeFactory
+  @Primitive(primitive = "serialize:")
+  public abstract static class SerializePrim extends UnaryBasicOperation {
+
+    @Specialization
+    public final Object doSObject(final Object receiver) {
+      if (VmSettings.SNAPSHOTS_ENABLED) {
+        ActorProcessingThread atp =
+            (ActorProcessingThread) ActorProcessingThread.currentThread();
+        atp.incrementSnapshotForSerialization();
+        SnapshotBuffer sb = new SnapshotBuffer(atp);
+
+        SClass clazz = Types.getClassOf(receiver);
+
+        clazz.serialize(receiver, sb);
+        writeBuffer(sb);
+        return receiver;
+      }
+
+      return Nil.nilObject;
+    }
+  }
+
+  @TruffleBoundary
+  private static void writeBuffer(final SnapshotBuffer sb) {
+    try (FileOutputStream fos = new FileOutputStream(new File("ACDC.serial"))) {
+      fos.getChannel().write(ByteBuffer.wrap(sb.getRawBuffer(), 0, sb.position()));
+      fos.flush();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 

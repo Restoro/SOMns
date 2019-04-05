@@ -64,7 +64,22 @@ public abstract class PrimitiveSerializationNodes {
   public abstract static class IntegerSerializationNode extends AbstractSerializationNode {
 
     @Specialization
-    public long serialize(final Object o, final SnapshotBuffer sb,
+    public long serialize(final Integer o, final SnapshotBuffer sb,
+        @Cached("getBuffer()") final SnapshotBuffer vb) {
+
+      long location = getValueLocation((long) o);
+      if (location != -1) {
+        return location;
+      }
+
+      long l = o;
+      int base = vb.addValueObject((long) o, Classes.integerClass, Long.BYTES);
+      vb.putLongAt(base, l);
+      return vb.calculateReferenceB(base);
+    }
+
+    @Specialization
+    public long serialize(final Long o, final SnapshotBuffer sb,
         @Cached("getBuffer()") final SnapshotBuffer vb) {
       assert o instanceof Long;
 
@@ -73,7 +88,7 @@ public abstract class PrimitiveSerializationNodes {
         return location;
       }
 
-      long l = (long) o;
+      long l = o;
       int base = vb.addValueObject(o, Classes.integerClass, Long.BYTES);
       vb.putLongAt(base, l);
       return vb.calculateReferenceB(base);
@@ -89,7 +104,7 @@ public abstract class PrimitiveSerializationNodes {
   public abstract static class DoubleSerializationNode extends AbstractSerializationNode {
 
     @Specialization
-    public long serialize(final Object o, final SnapshotBuffer sb,
+    public long serialize(final Double o, final SnapshotBuffer sb,
         @Cached("getBuffer()") final SnapshotBuffer vb) {
       assert o instanceof Double;
 
@@ -98,7 +113,7 @@ public abstract class PrimitiveSerializationNodes {
         return location;
       }
 
-      double d = (double) o;
+      double d = o;
       int base = vb.addValueObject(o, Classes.doubleClass, Double.BYTES);
       vb.putDoubleAt(base, d);
       return vb.calculateReferenceB(base);

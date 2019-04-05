@@ -54,4 +54,8 @@ class System usingVmMirror: vmMirror = Value (
 
   (* Applying a foreign function *)
   public apply: foreignFunction with: args = ( ^ vmMirror systemApply: foreignFunction with: args )
+
+  public serialize: object = (
+    vmMirror serialize: object.
+  )
 )

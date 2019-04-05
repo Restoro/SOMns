@@ -174,6 +174,10 @@ public abstract class TracingActivityThread extends ForkJoinWorkerThread {
     }
   }
 
+  public final void incrementSnapshotForSerialization() {
+    this.snapshotId++;
+  }
+
   public final void addMessageLocation(final long actorId, final long messageAdress) {
     messageLocations.add(actorId);
     messageLocations.add(messageAdress);

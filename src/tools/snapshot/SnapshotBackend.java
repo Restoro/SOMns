@@ -297,6 +297,10 @@ public class SnapshotBackend {
     TracingBackend.newSnapshot(snapshotVersion);
   }
 
+  public static synchronized void incrementPhaseForSerializationBench() {
+    snapshotVersion++;
+  }
+
   public static byte getSnapshotVersion() {
     assert VmSettings.SNAPSHOTS_ENABLED;
     // intentionally unsynchronized, as a result the line between snapshots will be a bit
@@ -377,6 +381,7 @@ public class SnapshotBackend {
 
     String name = VmSettings.TRACE_FILE + '.' + snapshotVersion;
     File f = new File(name + ".snap");
+    int size = 0;
     try (FileOutputStream fos = new FileOutputStream(f)) {
       // Write Message Locations
       int offset = writeMessageLocations(fos);
@@ -406,6 +411,8 @@ public class SnapshotBackend {
         fos.getChannel().write(ByteBuffer.wrap(sb.getRawBuffer(), 0, sb.position()));
         fos.flush();
       }
+
+      Output.println("Snapshotsize: " + fos.getChannel().size());
 
     } catch (IOException e1) {
       throw new RuntimeException(e1);
@@ -475,6 +482,7 @@ public class SnapshotBackend {
   private static int writeMessageLocations(final FileOutputStream fos)
       throws IOException {
     int entryCount = 0;
+    Output.println("registered messages: " + (messages.size() / 2));
     for (ArrayList<Long> al : messages) {
       assert al.size() % 2 == 0;
       entryCount += al.size();
