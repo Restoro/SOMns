@@ -185,9 +185,9 @@ public abstract class ObjectSerializationNodes {
       if (!layout.isValid()) {
         // replace this with a new node for the new layout
         SObjectSerializationNode replacement =
-            SObjectSerializationNodeFactory.create(classFact,
-                createReadNodes(so.getFactory()), depth);
-        return replace(replacement).execute(so, sb);
+            replace(SObjectSerializationNodeFactory.create(classFact,
+                createReadNodes(so.getFactory()), depth));
+        return replacement.execute(so, sb);
       } else {
         return doCached(so, sb);
       }
