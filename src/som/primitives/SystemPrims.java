@@ -55,6 +55,7 @@ import som.vm.constants.Nil;
 import som.vmobjects.SArray;
 import som.vmobjects.SArray.SImmutableArray;
 import som.vmobjects.SClass;
+import som.vmobjects.SObject;
 import som.vmobjects.SObjectWithClass;
 import som.vmobjects.SSymbol;
 import tools.SourceCoordinate;
@@ -65,6 +66,8 @@ import tools.replay.nodes.TraceActorContextNode;
 import tools.snapshot.SnapshotBackend;
 import tools.snapshot.SnapshotBuffer;
 import tools.snapshot.deserialization.DeserializationBuffer;
+import tools.snapshot.nodes.AbstractSerializationNode;
+import tools.snapshot.nodes.ObjectSerializationNodesFactory;
 
 
 public final class SystemPrims {
@@ -368,17 +371,25 @@ public final class SystemPrims {
   @Primitive(primitive = "serialize:")
   public abstract static class SerializePrim extends UnaryBasicOperation {
 
+    @Child AbstractSerializationNode serialize;
+
     @Specialization
-    public final Object doSObject(final Object receiver) {
+    public final Object doSObject(final SObject receiver) {
+      if (serialize == null) {
+        serialize =
+            insert(ObjectSerializationNodesFactory.SObjectSerializationNodeFactory.create(
+                receiver.getFactory(), 0));
+      }
       if (VmSettings.SNAPSHOTS_ENABLED) {
         ActorProcessingThread atp =
             (ActorProcessingThread) ActorProcessingThread.currentThread();
         atp.incrementSnapshotForSerialization();
         SnapshotBuffer sb = new SnapshotBuffer(atp);
+        String string;
+        // SClass clazz = Types.getClassOf(receiver);
 
-        SClass clazz = Types.getClassOf(receiver);
-
-        clazz.serialize(receiver, sb);
+        serialize.execute(receiver, sb);
+        // clazz.serialize(receiver, sb);
         writeBuffer(sb);
         return receiver;
       }
