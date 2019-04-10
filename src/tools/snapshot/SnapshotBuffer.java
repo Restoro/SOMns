@@ -86,7 +86,27 @@ public class SnapshotBuffer extends TraceBuffer {
     return oldPos + CLASS_ID_SIZE;
   }
 
-  public int addValueObject(final Object o, final SClass clazz, final int payload) {
+  public int addValueObject(final SAbstractObject o, final SClass clazz, final int payload) {
+    assert !SnapshotBackend.getValuepool().containsKey(o) : "Object serialized multiple times";
+
+    int oldPos = this.position;
+    o.updateSnapshotLocation(calculateReference(oldPos), snapshotVersion);
+
+    if (clazz.getSOMClass() == Classes.classClass) {
+      TracingActor owner = clazz.getOwnerOfOuter();
+      if (owner == null) {
+        owner = (TracingActor) SomLanguage.getCurrent().getVM().getMainActor();
+      }
+
+      assert owner != null;
+      owner.farReference(clazz, null, 0);
+    }
+    this.putIntAt(this.position, clazz.getIdentity());
+    this.position += CLASS_ID_SIZE + payload;
+    return oldPos + CLASS_ID_SIZE;
+  }
+
+  public int addValue(final Object o, final SClass clazz, final int payload) {
     assert !SnapshotBackend.getValuepool().containsKey(o) : "Object serialized multiple times";
 
     int oldPos = this.position;

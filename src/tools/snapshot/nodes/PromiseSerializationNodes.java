@@ -359,7 +359,7 @@ public abstract class PromiseSerializationNodes {
     public long doResolver(final SResolver resolver, final SnapshotBuffer sb,
         @Cached("getBuffer()") final SnapshotBuffer vb) {
 
-      long location = getValueLocation(resolver);
+      long location = getObjectValueLocation(resolver);
       if (location != -1) {
         return location;
       }
