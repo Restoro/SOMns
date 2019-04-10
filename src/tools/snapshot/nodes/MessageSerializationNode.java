@@ -139,7 +139,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     int payload =
         COMMONALITY_BYTES + Long.BYTES + 1 + (serializationNodes.length * Long.BYTES);
     int base = sb.addMessage(payload, dm);
-    long start = base - SnapshotBuffer.CLASS_ID_SIZE;
+    long start = base;
 
     assert dm.getSelector() == selector;
 
@@ -164,7 +164,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     int payload =
         COMMONALITY_BYTES + Long.BYTES + 1 + (serializationNodes.length * Long.BYTES);
     int base = sb.addMessage(payload, dm);
-    long start = base - SnapshotBuffer.CLASS_ID_SIZE;
+    long start = base;
 
     assert dm.getSelector() == selector;
 
@@ -189,7 +189,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     int payload = COMMONALITY_BYTES + Long.BYTES + Long.BYTES + 1
         + (serializationNodes.length * Long.BYTES);
     int base = sb.addMessage(payload, dm);
-    long start = base - SnapshotBuffer.CLASS_ID_SIZE;
+    long start = base;
 
     assert dm.getSelector() == selector;
 
@@ -218,7 +218,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     int payload =
         COMMONALITY_BYTES + Long.BYTES + 1 + (serializationNodes.length * Long.BYTES);
     int base = sb.addMessage(payload, dm);
-    long start = base - SnapshotBuffer.CLASS_ID_SIZE;
+    long start = base;
 
     assert dm.getSelector() == selector;
 
@@ -235,7 +235,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
       final long start) {
     doArguments(args, base, sb);
 
-    return sb.calculateReference(start);
+    return sb.calculateReferenceB(start);
   }
 
   @Specialization(guards = {"dm.isDelivered()", "dm.getResolver() != null"})
@@ -253,7 +253,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     int payload = COMMONALITY_BYTES + Long.BYTES + Long.BYTES + Integer.BYTES + 1
         + (serializationNodes.length * Long.BYTES);
     int base = sb.addMessage(payload, dm);
-    long start = base - SnapshotBuffer.CLASS_ID_SIZE;
+    long start = base;
 
     assert dm.getSelector() == selector;
 
@@ -285,7 +285,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     int payload = COMMONALITY_BYTES + Long.BYTES + Integer.BYTES + 1
         + (serializationNodes.length * Long.BYTES);
     int base = sb.addMessage(payload, dm);
-    long start = base - SnapshotBuffer.CLASS_ID_SIZE;
+    long start = base;
 
     assert dm.getSelector() == selector;
 
@@ -313,7 +313,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     int payload = COMMONALITY_BYTES + Long.BYTES + Long.BYTES + 1
         + (serializationNodes.length * Long.BYTES);
     int base = sb.addMessage(payload, dm);
-    long start = base - SnapshotBuffer.CLASS_ID_SIZE;
+    long start = base;
 
     assert dm.getSelector() == selector;
 
@@ -341,7 +341,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     int payload =
         COMMONALITY_BYTES + Long.BYTES + 1 + (serializationNodes.length * Long.BYTES);
     int base = sb.addMessage(payload, dm);
-    long start = base - SnapshotBuffer.CLASS_ID_SIZE;
+    long start = base;
 
     assert dm.getSelector() == selector;
 

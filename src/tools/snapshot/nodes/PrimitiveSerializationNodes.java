@@ -320,7 +320,7 @@ public abstract class PrimitiveSerializationNodes {
         return location;
       }
 
-      return vb.calculateReferenceB(sb.addValueObject(o, Classes.nilClass, 0));
+      return vb.calculateReferenceB(vb.addValueObject(o, Classes.nilClass, 0));
     }
 
     @Override

@@ -145,7 +145,7 @@ public abstract class ReceivedRootNode extends RootNode {
       final SnapshotBuffer sb) {
 
     // message wasn't serialized before
-    return sb.calculateReference(serializer.execute(msg, sb));
+    return serializer.execute(msg, sb);
   }
 
   protected final void resolvePromise(final VirtualFrame frame,
