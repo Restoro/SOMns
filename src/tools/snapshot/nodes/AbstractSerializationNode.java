@@ -41,7 +41,7 @@ public abstract class AbstractSerializationNode extends Node {
     return obj.getSnapshotLocation();
   }
 
-  protected static long getObjectLocation(final SAbstractObject obj, final long current) {
+  public static long getObjectLocation(final SAbstractObject obj, final long current) {
     if (obj.getSnapshotVersion() != current) {
       return -1;
     }

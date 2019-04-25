@@ -259,11 +259,14 @@ public abstract class PrimitiveSerializationNodes {
       SObjectWithClass outer = cls.getEnclosingObject();
       assert outer != null;
       TracingActor owner = cls.getOwnerOfOuter();
-      if (owner == null) {
-        owner = main;
+      if (owner == sb.getOwner().getCurrentActor()) {
+        sb.putLongAt(base + Integer.BYTES, outer.getSOMClass().serialize(outer, sb));
+      } else {
+        if (owner == null) {
+          owner = main;
+        }
+        owner.farReference(outer, sb, base + Integer.BYTES);
       }
-      owner.farReference(outer, sb, base + Integer.BYTES);
-
       long location = sb.calculateReferenceB(base);
       SnapshotBackend.registerClassLocation(cls.getIdentity(), location);
       return location;

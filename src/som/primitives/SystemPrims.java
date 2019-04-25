@@ -336,7 +336,7 @@ public final class SystemPrims {
 
     @Specialization
     public final Object doSObject(final Object receiver) {
-      if (VmSettings.SNAPSHOTS_ENABLED) {
+      if (VmSettings.SNAPSHOTS_ENABLED && !VmSettings.SNAPSHOT_REPLAY) {
         SnapshotBackend.startSnapshot();
       }
       return Nil.nilObject;

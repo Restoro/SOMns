@@ -1,8 +1,8 @@
 package tools.snapshot;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
-import som.interpreter.SomLanguage;
 import som.interpreter.actors.Actor.ActorProcessingThread;
 import som.interpreter.actors.EventualMessage;
 import som.vm.VmSettings;
@@ -71,18 +71,20 @@ public class SnapshotBuffer extends TraceBuffer {
 
     int oldPos = this.position;
     o.updateSnapshotLocation(calculateReference(oldPos), snapshotVersion);
-
-    if (clazz.getSOMClass() == Classes.classClass) {
-      TracingActor owner = clazz.getOwnerOfOuter();
-      if (owner == null) {
-        owner = (TracingActor) SomLanguage.getCurrent().getVM().getMainActor();
-      }
-
-      assert owner != null;
-      owner.farReference(clazz, null, 0);
-    }
     this.putIntAt(this.position, clazz.getIdentity());
     this.position += CLASS_ID_SIZE + payload;
+
+    if (clazz.getSOMClass() != Classes.classClass) {
+      TracingActor owner = clazz.getOwnerOfOuter();
+      if (owner == null) {
+        // owner = (TracingActor) SomLanguage.getCurrent().getVM().getMainActor();
+        serializeWithBoundary(clazz);
+      } else {
+        assert owner != null;
+        owner.farReference(clazz, null, 0);
+      }
+    }
+
     return oldPos + CLASS_ID_SIZE;
   }
 
@@ -91,18 +93,20 @@ public class SnapshotBuffer extends TraceBuffer {
 
     int oldPos = this.position;
     o.updateSnapshotLocation(calculateReference(oldPos), snapshotVersion);
-
-    if (clazz.getSOMClass() == Classes.classClass) {
-      TracingActor owner = clazz.getOwnerOfOuter();
-      if (owner == null) {
-        owner = (TracingActor) SomLanguage.getCurrent().getVM().getMainActor();
-      }
-
-      assert owner != null;
-      owner.farReference(clazz, null, 0);
-    }
     this.putIntAt(this.position, clazz.getIdentity());
     this.position += CLASS_ID_SIZE + payload;
+
+    if (clazz.getSOMClass() != Classes.classClass) {
+      TracingActor owner = clazz.getOwnerOfOuter();
+      if (owner == null) {
+        // owner = (TracingActor) SomLanguage.getCurrent().getVM().getMainActor();
+        serializeWithBoundary(clazz);
+      } else {
+        assert owner != null;
+        owner.farReference(clazz, null, 0);
+      }
+    }
+
     return oldPos + CLASS_ID_SIZE;
   }
 
@@ -114,19 +118,26 @@ public class SnapshotBuffer extends TraceBuffer {
     synchronized (SnapshotBackend.getValuepool()) {
       SnapshotBackend.getValuepool().put(o, calculateReference(oldPos));
     }
-
-    if (clazz.getSOMClass() == Classes.classClass) {
-      TracingActor owner = clazz.getOwnerOfOuter();
-      if (owner == null) {
-        owner = (TracingActor) SomLanguage.getCurrent().getVM().getMainActor();
-      }
-
-      assert owner != null;
-      owner.farReference(clazz, null, 0);
-    }
     this.putIntAt(this.position, clazz.getIdentity());
     this.position += CLASS_ID_SIZE + payload;
+
+    if (clazz.getSOMClass() != Classes.classClass) {
+      TracingActor owner = clazz.getOwnerOfOuter();
+      if (owner == null) {
+        // owner = (TracingActor) SomLanguage.getCurrent().getVM().getMainActor();
+        serializeWithBoundary(clazz);
+      } else {
+        assert owner != null;
+        owner.farReference(clazz, null, 0);
+      }
+    }
+
     return oldPos + CLASS_ID_SIZE;
+  }
+
+  @TruffleBoundary
+  private void serializeWithBoundary(final SClass clazz) {
+    clazz.getSOMClass().serialize(clazz, this);
   }
 
   public int getSize() {
