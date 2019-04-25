@@ -374,13 +374,26 @@ public class SPromise extends SObjectWithClass {
       super(owner, haltOnResolver, haltOnResolution);
     }
 
-    protected int resolvingActor;
+    protected int     resolvingActor;
+    protected boolean markUnresolvedSnapshot = false;
+    protected byte    markVersion;
 
     public int getResolvingActor() {
       if (!VmSettings.TRACK_SNAPSHOT_ENTITIES) {
         assert isCompleted();
       }
       return resolvingActor;
+    }
+
+    public void resetMark() {
+      markUnresolvedSnapshot = false;
+    }
+
+    public boolean isMarked(final Byte version) {
+      if (markVersion != version) {
+        return false;
+      }
+      return markUnresolvedSnapshot;
     }
 
     public void setResolvingActorForSnapshot(final int resolver) {
@@ -512,6 +525,16 @@ public class SPromise extends SObjectWithClass {
       if (VmSettings.USE_TRACING_ACTORS || VmSettings.REPLAY) {
         ((STracingPromise) p).setResolvingActorForSnapshot(
             ((TracingActor) EventualMessage.getActorCurrentMessageIsExecutionOn()).getActorId());
+
+        if (VmSettings.SNAPSHOTS_ENABLED && !VmSettings.REPLAY) {
+          if (p.getSnapshotLocation() == -1
+              || p.getSnapshotVersion() != TracingActivityThread.currentThread()
+                                                                .getSnapshotId()) {
+            ((STracingPromise) p).markUnresolvedSnapshot = true;
+            ((STracingPromise) p).markVersion = TracingActivityThread.currentThread()
+                                                                     .getSnapshotId();
+          }
+        }
       } else if (VmSettings.KOMPOS_TRACING) {
         if (type == Resolution.SUCCESSFUL && p.resolutionState != Resolution.CHAINED) {
           KomposTrace.promiseResolution(p.getPromiseId(), result);

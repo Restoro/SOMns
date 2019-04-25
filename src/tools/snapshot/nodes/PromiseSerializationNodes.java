@@ -49,12 +49,21 @@ public abstract class PromiseSerializationNodes {
   public abstract static class PromiseSerializationNode extends AbstractSerializationNode {
     @Child ClassPrim classPrim = ClassPrimFactory.create(null);
 
-    @Specialization(guards = "!prom.isCompleted()")
-    public long doUnresolved(final SPromise prom, final SnapshotBuffer sb) {
+    protected static boolean isMarked(final STracingPromise prom, final SnapshotBuffer sb) {
+      return prom.isMarked(sb.getSnapshotVersion());
+    }
+
+    @Specialization(guards = "!prom.isCompleted() || isMarked(prom, sb)")
+    public long doUnresolved(final STracingPromise prom, final SnapshotBuffer sb) {
       long location = getObjectLocation(prom, sb.getSnapshotVersion());
       if (location != -1) {
         return location;
       }
+      if (prom.isCompleted()) {
+        // Output.println("done" + prom);
+      }
+
+      prom.resetMark();
 
       int ncp;
       int nwr;
@@ -98,37 +107,15 @@ public abstract class PromiseSerializationNodes {
       return sb.calculateReferenceB(start);
     }
 
-    @Specialization(guards = "prom.isCompleted()")
-    public long doResolved(final SPromise prom, final SnapshotBuffer sb) {
+    @Specialization(guards = {"prom.isCompleted()", "!isMarked(prom, sb)"})
+    public long doResolved(final STracingPromise prom, final SnapshotBuffer sb) {
       long location = getObjectLocation(prom, sb.getSnapshotVersion());
       if (location != -1) {
         return location;
       }
 
-      int ncp;
-      int nwr;
-      int noe;
-      PromiseMessage whenRes;
-      PromiseMessage onError;
-      ArrayList<PromiseMessage> whenResExt;
-      ArrayList<PromiseMessage> onErrorExt;
-      SPromise chainedProm;
-      ArrayList<SPromise> chainedPromExt;
-      synchronized (prom) {
-        chainedProm = prom.getChainedPromiseUnsync();
-        chainedPromExt = prom.getChainedPromiseExtUnsync();
-        ncp = getObjectCnt(chainedProm, chainedPromExt);
-
-        whenRes = prom.getWhenResolvedUnsync();
-        whenResExt = prom.getWhenResolvedExtUnsync();
-        nwr = getObjectCnt(whenRes, whenResExt);
-
-        onError = prom.getOnError();
-        onErrorExt = prom.getOnErrorExtUnsync();
-        noe = getObjectCnt(onError, onErrorExt);
-      }
       int start = sb.addObject(prom, SPromise.getPromiseClass(),
-          1 + 6 + Integer.BYTES + Integer.BYTES + Long.BYTES * (noe + nwr + ncp + 1));
+          Integer.BYTES + Integer.BYTES + Long.BYTES);
       int base = start;
 
       // resolutionstate
@@ -149,11 +136,8 @@ public abstract class PromiseSerializationNodes {
       sb.putLongAt(base + 1 + Integer.BYTES,
           classPrim.executeEvaluated(value).serialize(value, sb));
       sb.putIntAt(base + 1 + +Integer.BYTES + Long.BYTES,
-          ((STracingPromise) prom).getResolvingActor());
+          prom.getResolvingActor());
       base += (1 + Integer.BYTES + Integer.BYTES + Long.BYTES);
-      base = serializeMessages(base, nwr, whenRes, whenResExt, sb);
-      base = serializeMessages(base, noe, onError, onErrorExt, sb);
-      serializeChainedPromises(base, ncp, chainedProm, chainedPromExt, sb);
 
       return sb.calculateReferenceB(start);
     }
@@ -257,26 +241,6 @@ public abstract class PromiseSerializationNodes {
         sb.installFixup(new PromiseValueFixup(p));
       }
 
-      int whenResolvedCnt = Short.toUnsignedInt(sb.getShort());
-      for (int i = 0; i < whenResolvedCnt; i++) {
-        PromiseMessage pm = (PromiseMessage) sb.getReference();
-        p.registerWhenResolvedUnsynced(pm);
-      }
-      int onErrorCnt = Short.toUnsignedInt(sb.getShort());
-      for (int i = 0; i < onErrorCnt; i++) {
-        PromiseMessage pm = (PromiseMessage) sb.getReference();
-        p.registerOnErrorUnsynced(pm);
-      }
-
-      int chainedPromCnt = Short.toUnsignedInt(sb.getShort());
-      for (int i = 0; i < chainedPromCnt; i++) {
-        Object remoteObj = sb.getReference();
-        if (DeserializationBuffer.needsFixup(remoteObj)) {
-          sb.installFixup(new ChainedPromiseFixup((STracingPromise) p));
-        } else {
-          initialiseChainedPromise((STracingPromise) p, (SPromise) remoteObj);
-        }
-      }
       return p;
     }
 
