@@ -466,6 +466,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
       args[0] = SPromise.createPromise(sender, false, false, null);
     } else {
       args[0] = prom;
+      // THIS MUST HAPPEN ONLY IF THE MESSAGE WILL BE NEEDED IN A MAILBOX
       if (!prom.isCompleted()) {
         prom.resolveFromSnapshot(value, Resolution.SUCCESSFUL, finalSender, true);
         ((STracingPromise) prom).setResolvingActorForSnapshot(finalSender.getActorId());
@@ -478,6 +479,8 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     if (pmf != null) {
       pmf.setMessage(psm);
     }
+
+    // THIS MUST HAPPEN ONLY IF THE MESSAGE WILL BE NEEDED IN A MAILBOX
     psm.resolve(value, SnapshotBackend.getCurrentActor(),
         finalSender);
 

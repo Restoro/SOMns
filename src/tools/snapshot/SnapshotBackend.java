@@ -482,12 +482,12 @@ public class SnapshotBackend {
   private static int writeMessageLocations(final FileOutputStream fos)
       throws IOException {
     int entryCount = 0;
-    Output.println("registered messages: " + (messages.size() / 2));
+
     for (ArrayList<Long> al : messages) {
       assert al.size() % 2 == 0;
       entryCount += al.size();
     }
-
+    Output.println("registered messages: " + (entryCount / 2));
     int msgSize = ((entryCount + 1) * Long.BYTES);
     ByteBuffer bb =
         ByteBuffer.allocate(msgSize).order(ByteOrder.LITTLE_ENDIAN);

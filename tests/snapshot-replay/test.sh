@@ -14,22 +14,22 @@ then
     #"Chameneos $iterations 0 100:10000"
     #"BigContention $iterations 0 20:12"
     #"ConcurrentDictionary $iterations 0 5:100:5"
-    "ConcurrentSortedLinkedList $iterations 0 10:1500:10:1"
-    "ProducerConsumerBoundedBuffer $iterations 0 40:10:10:60"
-    "Philosophers $iterations 0 20:5000"
+    #"ConcurrentSortedLinkedList $iterations 0 10:1500:10:1"
+    #"ProducerConsumerBoundedBuffer $iterations 0 40:10:10:60"
+    #"Philosophers $iterations 0 20:5000"
 
   )
 else
   declare -a Savina=(
-    "SleepingBarber $iterations 0 2500:1000:1000:1000"
-    "CigaretteSmokers $iterations 0 10000:200"
-    "LogisticsMapSeries $iterations 0 25000:10:346"
-    "BankTransaction $iterations 0 500:10000"
-    "RadixSort $iterations 0 50000:65536:74755"
-    "UnbalancedCobwebbedTree $iterations 0 100000:10:500:100"
-    "TrapezoidalApproximation $iterations 0 100:1000000:1:5"
-    "AStarSearch $iterations 0 100:20"
-    "NQueens $iterations 0 20:10:4"
+    #"SleepingBarber $iterations 0 2500:1000:1000:1000"
+    #"CigaretteSmokers $iterations 0 10000:200"
+    #"LogisticsMapSeries $iterations 0 25000:10:346"
+    "BankTransaction $iterations 0 500:10000" #Deadlock presumably
+    ####"RadixSort $iterations 0 50000:65536:74755"
+    #"UnbalancedCobwebbedTree $iterations 0 100000:10:500:100"
+    #"TrapezoidalApproximation $iterations 0 100:1000000:1:5"
+    #"AStarSearch $iterations 0 100:20"
+    #"NQueens $iterations 0 20:10:4"
   )
 fi
 
@@ -48,7 +48,7 @@ do
 
       echo "$counter. $args"
       echo "Tracing:"
-      $SOM_DIR/som -EG -as -at -t1 -JXmx3000m -JXss16284k core-lib/Benchmarks/AsyncHarness.ns SavinaSnap.$args
+      $SOM_DIR/som -EG -as -at -t1 -JXmx2000m -JXss16284k core-lib/Benchmarks/AsyncHarness.ns SavinaSnap.$args
       echo ""
       echo "Replay:"
       $SOM_DIR/som -EG -as -r -t1 -JXmx2000m -JXss16284k -vmd core-lib/Benchmarks/AsyncHarness.ns SavinaSnap.$args

@@ -19,7 +19,7 @@ then
     "SleepingBarber 1 0 2500:1000:1000:1000"
     "CigaretteSmokers 1 0 10000:200"
     "LogisticsMapSeries 1 0 25000:10:346"
-  ) 
+  )
 
   declare -a Validation=()
 else
@@ -30,7 +30,7 @@ else
     "TrapezoidalApproximation 1 0 100:1000000:1:5"
     "AStarSearch 1 0 100:20"
     "NQueens 1 0 20:10:4"
-  ) 
+  )
 
   declare -a Validation=(
     "Counting 100 0 1000"
@@ -48,21 +48,21 @@ popd > /dev/null
 
 SOM_DIR=$SCRIPT_PATH/../..
 
-for args in "${Savina[@]}"   
-do  
-  echo "$args" 
-  echo "Tracing:" 
-  $SOM_DIR/som -G -JXmx1500m -at core-lib/Benchmarks/AsyncHarness.ns Savina.$args 
-  echo "" 
-  echo "Replay:" 
-  $SOM_DIR/som -G -JXmx1500m -vmd -r core-lib/Benchmarks/AsyncHarness.ns Savina.$args 
-  echo "" 
-  echo "========================================================" 
-  echo "" 
-done 
+for args in "${Savina[@]}"
+do
+  echo "$args"
+  echo "Tracing:"
+  $SOM_DIR/som -G -JXmx1500m -at core-lib/Benchmarks/AsyncHarness.ns Savina.$args
+  echo ""
+  echo "Replay:"
+  $SOM_DIR/som -G -JXmx1500m -vmd -r core-lib/Benchmarks/AsyncHarness.ns Savina.$args
+  echo ""
+  echo "========================================================"
+  echo ""
+done
 
-for args in "${Validation[@]}"  
-do 
+for args in "${Validation[@]}"
+do
   echo "$args"
   echo "Tracing:"
   $SOM_DIR/som -G -JXmx1500m -at core-lib/Benchmarks/ImpactHarness.ns Validation.$args | grep -o 'success: .*' > $SCRIPT_PATH/orig.txt

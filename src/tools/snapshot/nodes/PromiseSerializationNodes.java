@@ -7,6 +7,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateNodeFactory;
 import com.oracle.truffle.api.dsl.Specialization;
 
+import som.Output;
 import som.interpreter.actors.Actor;
 import som.interpreter.actors.EventualMessage.PromiseMessage;
 import som.interpreter.actors.SPromise;
@@ -60,7 +61,7 @@ public abstract class PromiseSerializationNodes {
         return location;
       }
       if (prom.isCompleted()) {
-        // Output.println("done" + prom);
+        Output.println("done" + prom);
       }
 
       prom.resetMark();
