@@ -90,7 +90,7 @@ public abstract class PromiseSerializationNodes {
       }
       int start =
           sb.addObject(prom, SPromise.getPromiseClass(),
-              1 + Integer.BYTES + 6 + Long.BYTES * (noe + nwr + ncp));
+              1 + Integer.BYTES + 10 + Long.BYTES * (noe + nwr + ncp));
       int base = start;
 
       // resolutionstate
@@ -158,8 +158,9 @@ public abstract class PromiseSerializationNodes {
         final SnapshotBuffer sb) {
 
       int base = start;
-      sb.putShortAt(base, (short) cnt);
-      base += 2;
+      assert cnt < Integer.MAX_VALUE : "Too many Messages" + cnt;
+      sb.putIntAt(base, cnt);
+      base += 4;
       if (cnt > 0) {
         if (whenRes.isDelivered()) {
           doDeliveredMessage(whenRes, base, sb);
@@ -251,13 +252,13 @@ public abstract class PromiseSerializationNodes {
       SPromise promise = SPromise.createPromise(owner, false, false, null);
 
       // These messages aren't referenced by anything else, no need for fixup
-      int whenResolvedCnt = sb.getShort();
+      int whenResolvedCnt = sb.getInt();
       for (int i = 0; i < whenResolvedCnt; i++) {
         PromiseMessage pm = (PromiseMessage) sb.getReference();
         promise.registerWhenResolvedUnsynced(pm);
       }
 
-      int onErrorCnt = sb.getShort();
+      int onErrorCnt = sb.getInt();
       for (int i = 0; i < onErrorCnt; i++) {
         PromiseMessage pm = (PromiseMessage) sb.getReference();
         promise.registerOnErrorUnsynced(pm);
