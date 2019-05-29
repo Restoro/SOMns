@@ -16,6 +16,7 @@ import tools.concurrency.KomposTrace;
 import tools.concurrency.TracingActivityThread;
 import tools.concurrency.TracingActors.TracingActor;
 import tools.debugger.entities.PassiveEntityType;
+import tools.snapshot.SnapshotBackend;
 import tools.snapshot.nodes.PromiseSerializationNodesFactory.PromiseSerializationNodeFactory;
 import tools.snapshot.nodes.PromiseSerializationNodesFactory.ResolverSerializationNodeFactory;
 
@@ -206,6 +207,11 @@ public class SPromise extends SObjectWithClass {
   }
 
   public final void registerWhenResolvedUnsynced(final PromiseMessage msg) {
+
+    STracingPromise sp = (STracingPromise) this;
+    assert sp.getSnapshotLocation() == -1
+        || sp.getSnapshotVersion() != SnapshotBackend.getSnapshotVersion();
+
     if (whenResolved == null) {
       whenResolved = msg;
     } else {

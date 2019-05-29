@@ -80,7 +80,7 @@ public abstract class ReceivedRootNode extends RootNode {
       SnapshotBuffer sb = currentThread.getSnapshotBuffer();
       sb.getRecord().handleObjectsReferencedFromFarRefs(sb, classPrim);
 
-      if (sb.needsToBeSnapshot(msg.getMessageId())) {
+      if (sb.needsToBeSnapshot(msg.getSnapshotPhase())) {
         long msgIdentifier =
             ((TracingActor) msgClass.profile(msg).getTarget()).getMessageIdentifier();
         long location = serializeMessageIfNecessary(msg, sb);

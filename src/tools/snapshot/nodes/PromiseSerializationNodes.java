@@ -7,7 +7,6 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateNodeFactory;
 import com.oracle.truffle.api.dsl.Specialization;
 
-import som.Output;
 import som.interpreter.actors.Actor;
 import som.interpreter.actors.EventualMessage.PromiseMessage;
 import som.interpreter.actors.SPromise;
@@ -59,9 +58,6 @@ public abstract class PromiseSerializationNodes {
       long location = getObjectLocation(prom, sb.getSnapshotVersion());
       if (location != -1) {
         return location;
-      }
-      if (prom.isCompleted()) {
-        Output.println("done" + prom);
       }
 
       prom.resetMark();
@@ -158,30 +154,41 @@ public abstract class PromiseSerializationNodes {
         final SnapshotBuffer sb) {
 
       int base = start;
+      int actualCnt = 0;
       assert cnt < Integer.MAX_VALUE : "Too many Messages" + cnt;
-      sb.putIntAt(base, cnt);
+
       base += 4;
       if (cnt > 0) {
-        if (whenRes.isDelivered()) {
-          doDeliveredMessage(whenRes, base, sb);
-        } else {
-          sb.putLongAt(base, whenRes.forceSerialize(sb));
-        }
+        if (whenRes.getOriginalSnapshotPhase() != SnapshotBackend.getSnapshotVersion()) {
+          if (whenRes.isDelivered()) {
+            doDeliveredMessage(whenRes, base, sb);
+          } else {
+            sb.putLongAt(base, whenRes.forceSerialize(sb));
+          }
 
-        base += Long.BYTES;
+          base += Long.BYTES;
+          actualCnt++;
+        }
 
         if (cnt > 1) {
           for (int i = 0; i < whenResExt.size(); i++) {
             PromiseMessage msg = whenResExt.get(i);
-            if (msg.isDelivered()) {
-              doDeliveredMessage(msg, base + i * Long.BYTES, sb);
-            } else {
-              sb.putLongAt(base + i * Long.BYTES, msg.forceSerialize(sb));
+
+            if (msg.getOriginalSnapshotPhase() != SnapshotBackend.getSnapshotVersion()) {
+              if (msg.isDelivered()) {
+                doDeliveredMessage(msg, base, sb);
+              } else {
+                sb.putLongAt(base, msg.forceSerialize(sb));
+              }
+              base += Long.BYTES;
+              actualCnt++;
             }
           }
-          base += whenResExt.size() * Long.BYTES;
         }
       }
+
+      sb.putIntAt(start, actualCnt);
+
       return base;
     }
 

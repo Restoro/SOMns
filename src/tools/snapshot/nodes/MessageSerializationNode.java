@@ -31,6 +31,7 @@ import tools.snapshot.SnapshotBackend;
 import tools.snapshot.SnapshotBuffer;
 import tools.snapshot.deserialization.DeserializationBuffer;
 import tools.snapshot.deserialization.FixupInformation;
+import tools.snapshot.deserialization.SnapshotParser;
 
 
 @GenerateNodeFactory
@@ -467,7 +468,7 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     } else {
       args[0] = prom;
       // THIS MUST HAPPEN ONLY IF THE MESSAGE WILL BE NEEDED IN A MAILBOX
-      if (!prom.isCompleted()) {
+      if (!prom.isCompleted() && SnapshotParser.isTracedMessage(bb.getLastRef())) {
         prom.resolveFromSnapshot(value, Resolution.SUCCESSFUL, finalSender, true);
         ((STracingPromise) prom).setResolvingActorForSnapshot(finalSender.getActorId());
       }
@@ -481,8 +482,12 @@ public abstract class MessageSerializationNode extends AbstractSerializationNode
     }
 
     // THIS MUST HAPPEN ONLY IF THE MESSAGE WILL BE NEEDED IN A MAILBOX
-    psm.resolve(value, SnapshotBackend.getCurrentActor(),
-        finalSender);
+    if (SnapshotParser.isTracedMessage(bb.getLastRef())) {
+      psm.resolve(value, SnapshotBackend.getCurrentActor(),
+          finalSender);
+    } else {
+      assert psm.getArgs()[0] == psm.getPromise();
+    }
 
     return psm;
   }
